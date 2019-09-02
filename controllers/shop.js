@@ -36,16 +36,11 @@ exports.getCart = (req, res, next) => {
   Cart.getCart(cart => {
     Product.fetchAll(products => {
       const cartProducts = [];
-      // @ts-ignore
-      for (product of products) {
-        const cartProductData = cart.products.find(
-          // @ts-ignore
-          prod => prod.id === product.id
-        );
+      for (products of products) {
+        const cartProductData = cart.products.find(prod => prod.id === products.id);
         if (cartProductData) {
           cartProducts.push({
-            // @ts-ignore
-            productData: product,
+            productData: products,
             qty: cartProductData.qty
           });
         }
