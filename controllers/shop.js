@@ -128,7 +128,8 @@ exports.getOrders = (req, res, next) => {
     .then(orders => {
       res.render("shop/orders", {
         pageTitle: "Your Orders",
-        path: "/orders"
+        path: "/orders",
+        orders: orders
       });
     })
     .catch(err => {
