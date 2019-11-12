@@ -7,7 +7,7 @@ exports.getLogin = (req, res, next) => {
     isAuthenticated: false
   });
 };
-
+// Stores user in session: session contains 'login' value. This session will then be shared to other middleware that require rendering when interacting with the user.
 exports.postLogin = (req, res, next) => {
   User.findById("5d82bf38b820a20de55a472e")
     .then(user => {
