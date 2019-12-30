@@ -14,7 +14,7 @@ const User = require("./models/user");
 
 //MongoDB URI
 const MONGODB_URI =
-  "mongodb+srv://theArchitect71:${keys.mongodb}@cluster0-jsigs.mongodb.net/shop?retryWrites=true&w=majority";
+  `mongodb+srv://theArchitect71:${keys.mongodb}@cluster0-jsigs.mongodb.net/shop?retryWrites=true&w=majority`;
 
 const app = express();
 
