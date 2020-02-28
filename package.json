@@ -19,11 +19,13 @@
   "homepage": "https://github.com/TheArchitect71/Blazing#readme",
   "devDependencies": {
     "eslint": "^5.15.3",
-    "nodemon": "^1.18.10"
+    "nodemon": "^1.19.4"
   },
   "dependencies": {
+    "bcryptjs": "^2.4.3",
     "body-parser": "^1.18.3",
     "connect-mongodb-session": "^2.2.0",
+    "csurf": "^1.11.0",
     "ejs": "^2.6.1",
     "express": "^4.16.4",
     "express-handlebars": "^3.0.2",
