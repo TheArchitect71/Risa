@@ -16,7 +16,8 @@
                 <label for="password">Password</label>
                 <input type="password" name="password" id="password">
             </div>
-            <button class="btn" type="submit">Login</button>
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button class="btn" type="submit">Log in</button>
         </form>
     </main>
 <%- include('../includes/end.ejs') %>
