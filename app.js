@@ -5,6 +5,7 @@ const mongoose = require("mongoose");
 const session = require("express-session");
 const keys = require("./keys");
 const MongoDBStore = require("connect-mongodb-session")(session);
+const crsf = require("csurf");
 
 // Error Handler
 const errorController = require("./controllers/error");
@@ -23,6 +24,8 @@ const store = new MongoDBStore({
   uri: MONGODB_URI,
   collection: "sessions"
 });
+
+const crsfProtection = crsf()
 
 store.on("error", function(error) {
   console.log(error);
@@ -51,6 +54,8 @@ app.use(
   })
 );
 
+app.use(crsfProtection);
+
 // Stores user in session: session contains 'login' value. This session will then be shared to other middleware that require rendering when interacting with the user.
 app.use((req, res, next) => {
   if (!req.session.user) {
@@ -65,6 +70,12 @@ app.use((req, res, next) => {
     .catch(err => console.log(err));
 });
 
+app.use((req, res, next) => {
+  res.locals.isAuthenticated = req.session.isLoggedIn;
+  res.locals.csrfToken = req.csrfToken();
+  next();
+})
+
 // Routes in Use
 app.use("/admin", adminRoutes);
 app.use(shopRoutes);
@@ -75,18 +86,6 @@ app.use(errorController.get404);
 mongoose
   .connect(MONGODB_URI)
   .then(result => {
-    User.findOne().then(user => {
-      if (!user) {
-        const user = new User({
-          name: "Alan",
-          email: "alan@test.com",
-          cart: {
-            items: []
-          }
-        });
-        user.save();
-      }
-    });
     app.listen("3000");
   })
   .catch(err => {
