@@ -6,6 +6,7 @@ const session = require("express-session");
 const keys = require("./keys");
 const MongoDBStore = require("connect-mongodb-session")(session);
 const crsf = require("csurf");
+const flash = require("connect-flash");
 
 // Error Handler
 const errorController = require("./controllers/error");
@@ -55,6 +56,7 @@ app.use(
 );
 
 app.use(crsfProtection);
+app.use(flash());
 
 // Stores user in session: session contains 'login' value. This session will then be shared to other middleware that require rendering when interacting with the user.
 app.use((req, res, next) => {
