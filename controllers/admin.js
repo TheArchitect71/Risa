@@ -65,6 +65,10 @@ exports.postEditProduct = (req, res, next) => {
   Product.findById(prodId)
     .then(product => {
       // @ts-ignore
+      if (product.userId.toString() !== req.user._id.toString()) {
+        return res.redirect('/');
+      }
+      // @ts-ignore
       product.title = updatedTitle;
       // @ts-ignore
       product.price = updatedPrice;
@@ -72,11 +76,11 @@ exports.postEditProduct = (req, res, next) => {
       product.description = updatedDescription;
       // @ts-ignore
       product.imageUrl = updatedImageUrl;
-      return product.save();
-    })
-    .then(result => {
-      console.log(result);
-      res.redirect("/admin/products");
+      return product.save()
+      .then(result => {
+        console.log(result);
+        res.redirect("/admin/products");
+      })
     })
     .catch(err => {
       console.log(err);
@@ -84,7 +88,7 @@ exports.postEditProduct = (req, res, next) => {
 };
 
 exports.getProducts = (req, res, next) => {
-  Product.find()
+  Product.find({userId: req.user._id})
   /* Instead of writing nested queries: you can also select which kind of data should be received in find()
   .select('title price -id')
   Populate allows you to tell mongoose to populate a certain field with all the detail
@@ -103,7 +107,7 @@ exports.getProducts = (req, res, next) => {
 
 exports.postDeleteProduct = (req, res, next) => {
   const prodId = req.body.productId;
-  Product.findByIdAndRemove(prodId)
+  Product.deleteOne({_id: prodId, userId: req.user._id})
     .then(() => {
       console.log("Deleted Product");
       res.redirect("/admin/products");
