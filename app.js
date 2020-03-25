@@ -86,7 +86,7 @@ app.use(errorController.get404);
 
 // Using mongoose to call MongoDB Database
 mongoose
-  .connect(MONGODB_URI)
+  .connect(MONGODB_URI,{ useNewUrlParser: true, useUnifiedTopology: true })
   .then(result => {
     app.listen("3000");
   })
