@@ -3,7 +3,7 @@ const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
 const sendgridTransport = require("nodemailer-sendgrid-transport");
 const keys = require("../keys");
-const { validationResult } = require('express-validator');
+const { validationResult } = require("express-validator");
 
 const User = require("../models/user");
 
@@ -78,7 +78,6 @@ exports.postLogin = (req, res, next) => {
 exports.postSignup = (req, res, next) => {
   const email = req.body.email;
   const password = req.body.password;
-  const confirmPassword = req.body.confirmPassword;
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     console.log(errors.array());
@@ -88,37 +87,28 @@ exports.postSignup = (req, res, next) => {
       errorMessage: errors.array()[0].msg
     });
   }
-  User.findOne({ email: email }).then(userDoc => {
-    if (userDoc) {
-      req.flash("error", "e-mail exists already");
-      return res.redirect("/signup");
-    }
-    return bcrypt
-      .hash(password, 12)
-      .then(hashedPassword => {
-        const user = new User({
-          email: email,
-          password: hashedPassword,
-          cart: { items: [] }
-        });
-        return user.save();
-      })
-      .then(result => {
-        res.redirect("/login");
-        return transporter.sendMail({
-          to: email,
-          from: "shop@ericknstein.com",
-          subject: "Sign Up succeeded!",
-          html: "<h1>You successfully signed up!</h1>"
-        });
-      })
-      .catch(err => {
-        console.log(err);
-      })
-      .catch(err => {
-        console.log(err);
+  bcrypt
+    .hash(password, 12)
+    .then(hashedPassword => {
+      const user = new User({
+        email: email,
+        password: hashedPassword,
+        cart: { items: [] }
       });
-  });
+      return user.save();
+    })
+    .then(result => {
+      res.redirect("/login");
+      return transporter.sendMail({
+        to: email,
+        from: "shop@ericknstein.com",
+        subject: "Sign Up succeeded!",
+        html: "<h1>You successfully signed up!</h1>"
+      });
+    })
+    .catch(err => {
+      console.log(err);
+    });
 };
 
 exports.postLogout = (req, res, next) => {
@@ -214,20 +204,20 @@ exports.postNewPassword = (req, res, next) => {
     resetTokenExpiration: { $gt: Date.now() },
     _id: userId
   })
-  .then(user => {
-    resetUser = user;
-    return bcrypt.hash(newPassword, 12);
-  })
-  .then(hashedPassword => {
-    resetUser.password = hashedPassword;
-    resetUser.resetToken = undefined;
-    resetUser.resetTokenExpiration = undefined;
-    return resetUser.save();
-  })
-  .then(result => {
-    res.redirect('/login');
-  })
-  .catch(err => {
-    console.log(err);
-  })
+    .then(user => {
+      resetUser = user;
+      return bcrypt.hash(newPassword, 12);
+    })
+    .then(hashedPassword => {
+      resetUser.password = hashedPassword;
+      resetUser.resetToken = undefined;
+      resetUser.resetTokenExpiration = undefined;
+      return resetUser.save();
+    })
+    .then(result => {
+      res.redirect("/login");
+    })
+    .catch(err => {
+      console.log(err);
+    });
 };
