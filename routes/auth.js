@@ -9,7 +9,15 @@ router.get("/login", authController.getLogin);
 
 router.get("/signup", authController.getSignup);
 
-router.post("/login", authController.postLogin);
+router.post("/login",
+[
+  check("email")
+    .isEmail()
+    .withMessage("Please Enter a Valid Email"),
+    body("password", "Please input a password at least 8 characters long")
+    .isLength({min: 6, max: 20})
+    .isAlphanumeric()
+], authController.postLogin);
 
 router.post(
   "/signup",
@@ -18,17 +26,13 @@ router.post(
       .isEmail()
       .withMessage("Please Enter a Valid Email")
       .custom((value, { req }) => {
-        // if (value === "test@email.com") {
-        //   throw new Error("This is email is forbidden.");
-        // }
-        // return true;
         return User.findOne({ email: value }).then(userDoc => {
           if (userDoc) {
             return Promise.reject("This e-mail exists already");
           }
         });
       }),
-    /*The second parameter will be the .message for errors */
+    /*The second parameter will be the message for errors */
     body("password", "Please input a password at least 8 characters long")
       /*Password should be at least 8 characters long in production
     and require uppercase, lowercase, number, and symbol*/
