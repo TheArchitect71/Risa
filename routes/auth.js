@@ -9,15 +9,20 @@ router.get("/login", authController.getLogin);
 
 router.get("/signup", authController.getSignup);
 
-router.post("/login",
-[
-  check("email")
-    .isEmail()
-    .withMessage("Please Enter a Valid Email"),
+router.post(
+  "/login",
+  [
+    check("email")
+      .isEmail()
+      .withMessage("Please Enter a Valid Email")
+      .normalizeEmail(),
     body("password", "Please input a password at least 8 characters long")
-    .isLength({min: 6, max: 20})
-    .isAlphanumeric()
-], authController.postLogin);
+      .isLength({ min: 6, max: 20 })
+      .isAlphanumeric()
+      .trim()
+  ],
+  authController.postLogin
+);
 
 router.post(
   "/signup",
@@ -31,19 +36,23 @@ router.post(
             return Promise.reject("This e-mail exists already");
           }
         });
-      }),
+      })
+      .normalizeEmail(),
     /*The second parameter will be the message for errors */
     body("password", "Please input a password at least 8 characters long")
       /*Password should be at least 8 characters long in production
     and require uppercase, lowercase, number, and symbol*/
+      .trim()
       .isLength({ min: 6, max: 20 })
       .isAlphanumeric(),
-    body("confirmPassword").custom((value, { req }) => {
-      if (value !== req.body.passowrd) {
-        throw new Error("Passwords do not match");
-      }
-      return true;
-    })
+    body("confirmPassword")
+      .trim()
+      .custom((value, { req }) => {
+        if (value !== req.body.password) {
+          throw new Error("Passwords do not match");
+        }
+        return true;
+      })
   ],
   authController.postSignup
 );
