@@ -1,6 +1,6 @@
 const express = require("express");
-const { check, body } = require("express-validator");
-const User = require("../models/user");
+
+const isValidated = require("../middleware/is-validated");
 const authController = require("../controllers/auth");
 
 const router = express.Router();
@@ -9,53 +9,9 @@ router.get("/login", authController.getLogin);
 
 router.get("/signup", authController.getSignup);
 
-router.post(
-  "/login",
-  [
-    check("email")
-      .isEmail()
-      .withMessage("Please Enter a Valid Email")
-      .normalizeEmail(),
-    body("password", "Please input a password at least 8 characters long")
-      .isLength({ min: 6, max: 20 })
-      .isAlphanumeric()
-      .trim()
-  ],
-  authController.postLogin
-);
+router.post("/login", isValidated.validLogin, authController.postLogin);
 
-router.post(
-  "/signup",
-  [
-    check("email")
-      .isEmail()
-      .withMessage("Please Enter a Valid Email")
-      .custom((value, { req }) => {
-        return User.findOne({ email: value }).then(userDoc => {
-          if (userDoc) {
-            return Promise.reject("This e-mail exists already");
-          }
-        });
-      })
-      .normalizeEmail(),
-    /*The second parameter will be the message for errors */
-    body("password", "Please input a password at least 8 characters long")
-      /*Password should be at least 8 characters long in production
-    and require uppercase, lowercase, number, and symbol*/
-      .trim()
-      .isLength({ min: 6, max: 20 })
-      .isAlphanumeric(),
-    body("confirmPassword")
-      .trim()
-      .custom((value, { req }) => {
-        if (value !== req.body.password) {
-          throw new Error("Passwords do not match");
-        }
-        return true;
-      })
-  ],
-  authController.postSignup
-);
+router.post("/signup", isValidated.validSignup, authController.postSignup);
 
 router.post("/logout", authController.postLogout);
 
