@@ -24,7 +24,6 @@ exports.postAddProduct = (req, res, next) => {
   const description = req.body.description;
   const imageUrl = req.body.imageUrl;
   const errors = validationResult(req);
-
   if (!errors.isEmpty()) {
     return res.status(422).render("admin/edit-product", {
       path: "/add-product",
@@ -57,7 +56,8 @@ exports.postAddProduct = (req, res, next) => {
       res.redirect("/admin/products");
     })
     .catch(err => {
-      console.log(err);
+      const error = new Error(err);
+      return next(error);
     });
 };
 
@@ -89,7 +89,8 @@ exports.getEditProduct = (req, res, next) => {
       });
     })
     .catch(err => {
-      console.log(err);
+      const error = new Error(err);
+      return next(error);
     });
 };
 
@@ -140,7 +141,8 @@ exports.postEditProduct = (req, res, next) => {
       })
     })
     .catch(err => {
-      console.log(err);
+      const error = new Error(err);
+      return next(error);
     });
 };
 
@@ -158,7 +160,8 @@ exports.getProducts = (req, res, next) => {
       });
     })
     .catch(err => {
-      console.log(err);
+      const error = new Error(err);
+      return next(error);
     });
 };
 
@@ -170,6 +173,7 @@ exports.postDeleteProduct = (req, res, next) => {
       res.redirect("/admin/products");
     })
     .catch(err => {
-      console.log(err);
+      const error = new Error(err);
+      return next(error);
     });
 };
