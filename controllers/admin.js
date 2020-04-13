@@ -40,7 +40,6 @@ exports.postAddProduct = (req, res, next) => {
       }
     });
   }
-
   const product = new Product({
     // The listings on the left are the keys defined in the Schema
     title: title,
