@@ -4,12 +4,9 @@ const User = require("../models/user");
 exports.validProduct = (req, res, next) => {
   [
     body("title", "Please Provide a Title ")
+      .isLength({ min: 1, max: 140 })
       .isString()
-      .isLength({ min: 1 })
       .trim(),
-    body("imageUrl", "Please Provide an Image URL")
-      .isString()
-      .isLength({ min: 10 }),
     body("price", "Please Set a Price").isFloat(),
     body("description", "Please Provide a Description")
       .isLength({ min: 3, max: 400 })
@@ -61,4 +58,5 @@ exports.validSignup = (req, res, next) => {
         return true;
       }),
   ];
+  next();
 };
