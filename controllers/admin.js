@@ -2,56 +2,52 @@ const Product = require("../models/product");
 const { validationResult } = require("express-validator");
 
 exports.getAddProduct = (req, res, next) => {
-  let message = req.flash("error");
-  if (message.length > 0) {
-    message = message[0];
-  } else {
-    message = null;
-  }
   res.render("admin/edit-product", {
     pageTitle: "Add Product",
     path: "/admin/add-product",
     editing: false,
     hasError: false,
-    errorMessage: message,
+    errorMessage: '',
     validationErrors: []
   });
 };
 
 exports.postAddProduct = (req, res, next) => {
   const title = req.body.title;
+  const image = req.file;
   const price = req.body.price;
   const description = req.body.description;
-  const imageUrl = req.body.imageUrl;
   const errors = validationResult(req);
-  if (!errors.isEmpty()) {
+
+  if (!errors.isEmpty() || !image) {
     return res.status(422).render("admin/edit-product", {
-      path: "/add-product",
       pageTitle: "Add Product",
+      path: "/add-product",
       editing: false,
       hasError: true,
       errorMessage: errors.array()[0].msg,
       validationErrors: errors.array(),
       product: {
         title: title,
-        imageUrl: imageUrl,
         price: price,
         description: description
       }
     });
   }
+
+  const imageUrl = image.path;
   const product = new Product({
     // The listings on the left are the keys defined in the Schema
     title: title,
+    imageUrl: imageUrl,
     price: price,
     description: description,
-    imageUrl: imageUrl,
     userId: req.user
   });
   product
     .save()
     .then(result => {
-      console.log("Created Product");
+      console.log("Product Has Been Created.");
       res.redirect("/admin/products");
     })
     .catch(err => {
@@ -96,23 +92,22 @@ exports.getEditProduct = (req, res, next) => {
 exports.postEditProduct = (req, res, next) => {
   const prodId = req.body.productId;
   const updatedTitle = req.body.title;
+  const image = req.file;
   const updatedPrice = req.body.price;
-  const updatedImageUrl = req.body.imageUrl;
   const updatedDescription = req.body.description;
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
     console.log(errors.array());
     return res.status(422).render("admin/edit-product", {
-      path: "/edit-product",
       pageTitle: "Edit Product",
+      path: "/edit-product",
       editing: true,
       hasError: true,
       errorMessage: errors.array()[0].msg,
       validationErrors: errors.array(),
       product: {
         title: updatedTitle,
-        imageUrl: updatedImageUrl,
         price: updatedPrice,
         description: updatedDescription,
         _id: prodId
@@ -127,12 +122,14 @@ exports.postEditProduct = (req, res, next) => {
       }
       // @ts-ignore
       product.title = updatedTitle;
+      if (image) {
+        // @ts-ignore
+        product.imageUrl = image.path;
+      }
       // @ts-ignore
       product.price = updatedPrice;
       // @ts-ignore
       product.description = updatedDescription;
-      // @ts-ignore
-      product.imageUrl = updatedImageUrl;
       return product.save()
       .then(result => {
         console.log(result);

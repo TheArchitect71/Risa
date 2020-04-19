@@ -65,11 +65,11 @@ exports.postLogin = (req, res, next) => {
       path: "/login",
       pageTitle: "Login",
       errorMessage: errors.array()[0].msg,
+      validationErrors: errors.array(),
       oldInput: {
         email: email,
         password: password
-      },
-      validationErrors: errors.array()
+      }
     });
   }
   User.findOne({ email: email })
