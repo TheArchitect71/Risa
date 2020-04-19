@@ -7,6 +7,8 @@ const keys = require("./keys");
 const MongoDBStore = require("connect-mongodb-session")(session);
 const crsf = require("csurf");
 const flash = require("connect-flash");
+const multer = require("multer");
+const { fileStorage, fileFilter } = require("./middleware/multer");
 
 // Error Handler
 const errorController = require("./controllers/error");
@@ -15,23 +17,9 @@ const errorController = require("./controllers/error");
 const User = require("./models/user");
 
 //MongoDB URI
-const MONGODB_URI =
-  `mongodb+srv://theArchitect71:${keys.mongodb}@cluster0-jsigs.mongodb.net/shop?retryWrites=true&w=majority`;
+const MONGODB_URI = `mongodb+srv://theArchitect71:${keys.mongodb}@cluster0-jsigs.mongodb.net/shop?retryWrites=true&w=majority`;
 
 const app = express();
-
-//MongoDB Store should be used for production
-const store = new MongoDBStore({
-  uri: MONGODB_URI,
-  collection: "sessions"
-});
-
-const crsfProtection = crsf()
-
-store.on("error", function(error) {
-  console.log(error);
-});
-
 // Views
 app.set("view engine", "ejs");
 app.set("views", "views");
@@ -41,9 +29,17 @@ const adminRoutes = require("./routes/admin");
 const shopRoutes = require("./routes/shop");
 const authRoutes = require("./routes/auth");
 
-// Others
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(express.static(path.join(__dirname, "public")));
+//MongoDB Store should be used for production
+const store = new MongoDBStore({
+  uri: MONGODB_URI,
+  collection: "sessions",
+});
+
+store.on("error", function (error) {
+  console.log(error);
+});
+
+const crsfProtection = crsf();
 
 //Session
 app.use(
@@ -56,6 +52,15 @@ app.use(
   })
 );
 
+//Image Upload
+// @ts-ignore
+app.use(multer({ storage: fileStorage, fileFilter: fileFilter }).single("image"));
+
+// Others
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(express.static(path.join(__dirname, "public")));
+app.use("/images", express.static(path.join(__dirname, "images")));
+
 // @ts-ignore
 app.use(flash());
 app.use(crsfProtection);
@@ -64,7 +69,7 @@ app.use((req, res, next) => {
   res.locals.isAuthenticated = req.session.isLoggedIn;
   res.locals.csrfToken = req.csrfToken();
   next();
-})
+});
 
 // Stores user in session: session contains 'login' value. This session will then be shared to other middleware that require rendering when interacting with the user.
 app.use((req, res, next) => {
@@ -72,7 +77,7 @@ app.use((req, res, next) => {
     return next();
   }
   User.findById(req.session.user._id)
-    .then(user => {
+    .then((user) => {
       if (!user) {
         return next();
       }
@@ -80,7 +85,7 @@ app.use((req, res, next) => {
       req.user = user;
       next();
     })
-    .catch(err => {
+    .catch((err) => {
       next(new Error(err));
     });
 });
@@ -91,21 +96,21 @@ app.use(shopRoutes);
 app.use(authRoutes);
 
 // Error routes
-app.get('/500', errorController.get500);
 app.use(errorController.get404);
 app.use((error, req, res, next) => {
-  res.status(500).render('500', {
-    pageTitle: 'Error',
-    path: '/500'
+  res.status(500).render("500", {
+    pageTitle: "Error",
+    path: "/500",
+  });
 });
-})
+app.get("/500", errorController.get500);
 
 // Using mongoose to call MongoDB Database
 mongoose
-  .connect(MONGODB_URI,{ useNewUrlParser: true, useUnifiedTopology: true })
-  .then(result => {
+  .connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then((result) => {
     app.listen("3000");
   })
-  .catch(err => {
+  .catch((err) => {
     console.log(err);
   });
