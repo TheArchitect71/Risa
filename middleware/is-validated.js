@@ -4,11 +4,12 @@ const User = require("../models/user");
 exports.validProduct = (req, res, next) => {
   [
     body("title", "Please Provide a Title ")
-      .isLength({ min: 1, max: 140 })
       .isString()
+      .isLength({ min: 2, max: 140 })
       .trim(),
     body("price", "Please Set a Price").isFloat(),
     body("description", "Please Provide a Description")
+      .isString()
       .isLength({ min: 3, max: 400 })
       .trim(),
   ];
