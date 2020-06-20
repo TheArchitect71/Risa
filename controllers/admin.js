@@ -1,4 +1,5 @@
 const Product = require("../models/product");
+const fileHelper = require("../util/file");
 const { validationResult } = require("express-validator");
 
 exports.getAddProduct = (req, res, next) => {
@@ -7,8 +8,8 @@ exports.getAddProduct = (req, res, next) => {
     path: "/admin/add-product",
     editing: false,
     hasError: false,
-    errorMessage: '',
-    validationErrors: []
+    errorMessage: "",
+    validationErrors: [],
   });
 };
 
@@ -30,8 +31,8 @@ exports.postAddProduct = (req, res, next) => {
       product: {
         title: title,
         price: price,
-        description: description
-      }
+        description: description,
+      },
     });
   }
 
@@ -42,15 +43,15 @@ exports.postAddProduct = (req, res, next) => {
     imageUrl: imageUrl,
     price: price,
     description: description,
-    userId: req.user
+    userId: req.user,
   });
   product
     .save()
-    .then(result => {
+    .then((result) => {
       console.log("Product Has Been Created.");
       res.redirect("/admin/products");
     })
-    .catch(err => {
+    .catch((err) => {
       const error = new Error(err);
       return next(error);
     });
@@ -69,7 +70,7 @@ exports.getEditProduct = (req, res, next) => {
   }
   const prodId = req.params.productId;
   Product.findById(prodId)
-    .then(product => {
+    .then((product) => {
       if (!product) {
         return res.redirect("/");
       }
@@ -80,10 +81,10 @@ exports.getEditProduct = (req, res, next) => {
         hasError: true,
         product: product,
         errorMessage: message,
-        validationErrors: []
+        validationErrors: [],
       });
     })
-    .catch(err => {
+    .catch((err) => {
       const error = new Error(err);
       return next(error);
     });
@@ -110,19 +111,20 @@ exports.postEditProduct = (req, res, next) => {
         title: updatedTitle,
         price: updatedPrice,
         description: updatedDescription,
-        _id: prodId
-      }
+        _id: prodId,
+      },
     });
   }
   Product.findById(prodId)
-    .then(product => {
+    .then((product) => {
       // @ts-ignore
       if (product.userId.toString() !== req.user._id.toString()) {
-        return res.redirect('/');
+        return res.redirect("/");
       }
       // @ts-ignore
       product.title = updatedTitle;
       if (image) {
+        fileHelper.deleteFile(product.imageUrl);
         // @ts-ignore
         product.imageUrl = image.path;
       }
@@ -130,32 +132,31 @@ exports.postEditProduct = (req, res, next) => {
       product.price = updatedPrice;
       // @ts-ignore
       product.description = updatedDescription;
-      return product.save()
-      .then(result => {
+      return product.save().then((result) => {
         console.log(result);
         res.redirect("/admin/products");
-      })
+      });
     })
-    .catch(err => {
+    .catch((err) => {
       const error = new Error(err);
       return next(error);
     });
 };
 
 exports.getProducts = (req, res, next) => {
-  Product.find({userId: req.user._id})
-  /* Instead of writing nested queries: you can also select which kind of data should be received in find()
+  Product.find({ userId: req.user._id })
+    /* Instead of writing nested queries: you can also select which kind of data should be received in find()
   .select('title price -id')
   Populate allows you to tell mongoose to populate a certain field with all the detail
   .populate('userId', 'name')*/
-    .then(products => {
+    .then((products) => {
       res.render("admin/products", {
         prods: products,
         pageTitle: "Admin Products",
-        path: "/admin/products"
+        path: "/admin/products",
       });
     })
-    .catch(err => {
+    .catch((err) => {
       const error = new Error(err);
       return next(error);
     });
@@ -163,12 +164,19 @@ exports.getProducts = (req, res, next) => {
 
 exports.postDeleteProduct = (req, res, next) => {
   const prodId = req.body.productId;
-  Product.deleteOne({_id: prodId, userId: req.user._id})
+  Product.findById(prodId)
+    .then((product) => {
+      if (!product) {
+        return next(new Error("Product not found."));
+      }
+      fileHelper.deleteFile(product.imageUrl);
+      return Product.deleteOne({ _id: prodId, userId: req.user._id });
+    })
     .then(() => {
       console.log("Deleted Product");
       res.redirect("/admin/products");
     })
-    .catch(err => {
+    .catch((err) => {
       const error = new Error(err);
       return next(error);
     });
