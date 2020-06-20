@@ -1,4 +1,5 @@
 const path = require("path");
+
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
@@ -8,7 +9,6 @@ const MongoDBStore = require("connect-mongodb-session")(session);
 const crsf = require("csurf");
 const flash = require("connect-flash");
 const multer = require("multer");
-const { fileStorage, fileFilter } = require("./middleware/multer");
 
 // Error Handler
 const errorController = require("./controllers/error");
@@ -16,10 +16,20 @@ const errorController = require("./controllers/error");
 // Models
 const User = require("./models/user");
 
-//MongoDB URI
+//MongoDB URI - what does it do, you may ask.
 const MONGODB_URI = `mongodb+srv://theArchitect71:${keys.mongodb}@cluster0-jsigs.mongodb.net/shop?retryWrites=true&w=majority`;
 
 const app = express();
+
+//MongoDB Store should be used for production
+const store = new MongoDBStore({
+  uri: MONGODB_URI,
+  collection: "sessions",
+});
+
+const crsfProtection = crsf();
+const { fileStorage, fileFilter } = require("./middleware/multer");
+
 // Views
 app.set("view engine", "ejs");
 app.set("views", "views");
@@ -29,17 +39,15 @@ const adminRoutes = require("./routes/admin");
 const shopRoutes = require("./routes/shop");
 const authRoutes = require("./routes/auth");
 
-//MongoDB Store should be used for production
-const store = new MongoDBStore({
-  uri: MONGODB_URI,
-  collection: "sessions",
-});
+app.use(bodyParser.urlencoded({ extended: false }));
 
-store.on("error", function (error) {
-  console.log(error);
-});
+//Image Upload
+// @ts-ignore
+app.use(multer({ storage: fileStorage, fileFilter: fileFilter }).single("image"));
 
-const crsfProtection = crsf();
+// Others
+app.use(express.static(path.join(__dirname, "public")));
+app.use("/images", express.static(path.join(__dirname, "images")));
 
 //Session
 app.use(
@@ -50,26 +58,16 @@ app.use(
     saveUninitialized: false,
     store: store
   })
-);
+  );
+  // @ts-ignore
+  app.use(crsfProtection);
+  app.use(flash());
 
-//Image Upload
-// @ts-ignore
-app.use(multer({ storage: fileStorage, fileFilter: fileFilter }).single("image"));
-
-// Others
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(express.static(path.join(__dirname, "public")));
-app.use("/images", express.static(path.join(__dirname, "images")));
-
-// @ts-ignore
-app.use(flash());
-app.use(crsfProtection);
-
-app.use((req, res, next) => {
-  res.locals.isAuthenticated = req.session.isLoggedIn;
-  res.locals.csrfToken = req.csrfToken();
-  next();
-});
+  app.use((req, res, next) => {
+    res.locals.isAuthenticated = req.session.isLoggedIn;
+    res.locals.csrfToken = req.csrfToken();
+    next();
+  });
 
 // Stores user in session: session contains 'login' value. This session will then be shared to other middleware that require rendering when interacting with the user.
 app.use((req, res, next) => {
@@ -96,6 +94,7 @@ app.use(shopRoutes);
 app.use(authRoutes);
 
 // Error routes
+app.get("/500", errorController.get500);
 app.use(errorController.get404);
 app.use((error, req, res, next) => {
   res.status(500).render("500", {
@@ -103,7 +102,6 @@ app.use((error, req, res, next) => {
     path: "/500",
   });
 });
-app.get("/500", errorController.get500);
 
 // Using mongoose to call MongoDB Database
 mongoose
