@@ -42,7 +42,6 @@ const authRoutes = require("./routes/auth");
 app.use(bodyParser.urlencoded({ extended: false }));
 
 //Image Upload
-// @ts-ignore
 app.use(multer({ storage: fileStorage, fileFilter: fileFilter }).single("image"));
 
 // Others
@@ -51,7 +50,6 @@ app.use("/images", express.static(path.join(__dirname, "images")));
 
 //Session
 app.use(
-  // @ts-ignore
   session({
     secret: keys.secret,
     resave: false,
@@ -59,7 +57,7 @@ app.use(
     store: store
   })
   );
-  // @ts-ignore
+
   app.use(crsfProtection);
   app.use(flash());
 
