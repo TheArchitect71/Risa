@@ -1,10 +1,9 @@
 const path = require("path");
-
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const session = require("express-session");
-const keys = require("./keys");
+const keys = require("./keys.js");
 const MongoDBStore = require("connect-mongodb-session")(session);
 const crsf = require("csurf");
 const flash = require("connect-flash");

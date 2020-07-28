@@ -1,9 +1,9 @@
 const fs = require("fs");
 const path = require("path");
-const keys = require("./keys");
+const keys = require("../keys.js");
 
 // Stripe Key
-const stripe = require("stripe")(`${stripeSecret}`);
+const stripe = require("stripe")(`${keys.stripeSecret}`);
 
 const PDFDocument = require("pdfkit");
 
