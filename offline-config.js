@@ -1,0 +1,2 @@
+exports.offlineUri=function(value=process.env.MONGODB_URI||'mongodb://127.0.0.1:27018/risa?replicaSet=offline-rs'){const u=new URL(value);if(u.protocol!=='mongodb:'||!['localhost','127.0.0.1'].includes(u.hostname))throw new Error('Offline MongoDB requires a single localhost mongodb:// address');return value;};
+exports.online=function(){return process.env.ENABLE_ONLINE_SERVICES==='true';};

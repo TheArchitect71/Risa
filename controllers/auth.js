@@ -1,19 +1,13 @@
 const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
-const sendgridTransport = require("nodemailer-sendgrid-transport");
 const keys = require("../keys");
 const { validationResult } = require("express-validator");
 
 const User = require("../models/user");
 
-const transporter = nodemailer.createTransport(
-  sendgridTransport({
-    auth: {
-      api_key: keys.sendgridkey
-    }
-  })
-);
+const {online}=require('../offline-config');
+const transporter={sendMail:async message=>{if(!online())return {unavailable:true};return nodemailer.createTransport({host:process.env.SMTP_HOST||'smtp.sendgrid.net',port:587,auth:{user:process.env.SMTP_USER||'apikey',pass:process.env.SMTP_PASSWORD||keys.sendgridkey}}).sendMail(message);}};
 
 exports.getLogin = (req, res, next) => {
   let message = req.flash("error");
@@ -58,9 +52,9 @@ exports.postLogin = (req, res, next) => {
   const email = req.body.email;
   const password = req.body.password;
   const errors = validationResult(req);
-  
+
   if (!errors.isEmpty()) {
-    console.log(errors.array());
+
     return res.status(422).render("auth/login", {
       path: "/login",
       pageTitle: "Login",
@@ -68,7 +62,7 @@ exports.postLogin = (req, res, next) => {
       validationErrors: errors.array(),
       oldInput: {
         email: email,
-        password: password
+        password: ""
       }
     });
   }
@@ -81,7 +75,7 @@ exports.postLogin = (req, res, next) => {
           errorMessage: "Invalid email or password",
           oldInput: {
             email: email,
-            password: password
+            password: ""
           },
           validationErrors: []
         });
@@ -92,7 +86,7 @@ exports.postLogin = (req, res, next) => {
         .then(doMatch => {
           if (doMatch) {
             req.session.isLoggedIn = true;
-            req.session.user = user;
+            req.session.user = {_id:user._id.toString()};
             return req.session.save(err => {
               console.log(err);
               res.redirect("/");
@@ -104,7 +98,7 @@ exports.postLogin = (req, res, next) => {
             errorMessage: "Invalid email or password",
             oldInput: {
               email: email,
-              password: password
+              password: ""
             },
             validationErrors: []
           });
@@ -125,15 +119,15 @@ exports.postSignup = (req, res, next) => {
   const password = req.body.password;
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    console.log(errors.array());
+
     return res.status(422).render("auth/signup", {
       path: "/signup",
       pageTitle: "Sign up",
       errorMessage: errors.array()[0].msg,
       oldInput: {
         email: email,
-        password: password,
-        confirmPassword: req.body.confirmPassword
+        password: "",
+        confirmPassword: ""
       },
       validationErrors: errors.array()
     });
@@ -185,6 +179,7 @@ exports.getReset = (req, res, next) => {
 };
 
 exports.postReset = (req, res, next) => {
+ if(!online()) return res.status(503).json({error:'Password reset email is unavailable offline'});
   crypto.randomBytes(32, (err, buffer) => {
     if (err) {
       console.log(err);
@@ -211,8 +206,8 @@ exports.postReset = (req, res, next) => {
           subject: "Password Reset",
           html: `
           <p>You requested a password reset</p>
-          <p>Click on this 
-          <a href="http://localhost:3000/reset/${token}">link</a> 
+          <p>Click on this
+          <a href="http://localhost:3000/reset/${token}">link</a>
           to set a new password.</p>`
         });
       })
@@ -237,7 +232,7 @@ exports.getNewPassword = (req, res, next) => {
         path: "/new-password",
         pageTitle: "New Password",
         errorMessage: message,
-        userId: user._id.toString(),
+        userId: user?._id.toString(),
         passwordToken: token
       });
     })

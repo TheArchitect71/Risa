@@ -26,7 +26,7 @@ exports.postAddProduct = (req, res, next) => {
       path: "/add-product",
       editing: false,
       hasError: true,
-      errorMessage: errors.array()[0].msg,
+      errorMessage: errors.array()[0]?.msg || "An image is required",
       validationErrors: errors.array(),
       product: {
         title: title,
@@ -36,7 +36,7 @@ exports.postAddProduct = (req, res, next) => {
     });
   }
 
-  const imageUrl = image.path;
+  const imageUrl = "images/" + require("path").basename(image.path);
   const product = new Product({
     // The listings on the left are the keys defined in the Schema
     title: title,
@@ -105,7 +105,7 @@ exports.postEditProduct = (req, res, next) => {
       path: "/edit-product",
       editing: true,
       hasError: true,
-      errorMessage: errors.array()[0].msg,
+      errorMessage: errors.array()[0]?.msg || "An image is required",
       validationErrors: errors.array(),
       product: {
         title: updatedTitle,
@@ -118,15 +118,16 @@ exports.postEditProduct = (req, res, next) => {
   Product.findById(prodId)
     .then((product) => {
       // @ts-ignore
+      if (!product) return res.status(404).json({error:"Product not found"});
       if (product.userId.toString() !== req.user._id.toString()) {
         return res.redirect("/");
       }
       // @ts-ignore
       product.title = updatedTitle;
       if (image) {
-        fileHelper.deleteFile(product.imageUrl);
+        fileHelper.deleteFile(require("path").join(__dirname,"..",product.imageUrl));
         // @ts-ignore
-        product.imageUrl = image.path;
+        product.imageUrl = "images/" + require("path").basename(image.path);
       }
       // @ts-ignore
       product.price = updatedPrice;
@@ -162,25 +163,6 @@ exports.getProducts = (req, res, next) => {
     });
 };
 
-exports.deleteProduct = (req, res, next) => {
-  const prodId = req.params.productId;
-  Product.findById(prodId)
-    .then((product) => {
-      if (!product) {
-        return next(new Error("Product not found."));
-      }
-      fileHelper.deleteFile(product.imageUrl);
-      return Product.deleteOne({ _id: prodId, userId: req.user._id });
-    })
-    .then(() => {
-      console.log("Deleted Product");
-      res.status(200).json({
-        message: "Product has been Deleted."
-      })
-    })
-    .catch((err) => {
-      res.status(500).json({
-        message: "Deleting Product Failed."
-      });
-    });
+exports.deleteProduct = async (req,res,next) => {
+ try {const product=await Product.findById(req.params.productId);if(!product)return res.status(404).json({error:'Product not found'});if(product.userId.toString()!==req.user._id.toString())return res.status(403).json({error:'Not authorized'});await Product.deleteOne({_id:product._id,userId:req.user._id});fileHelper.deleteFile(require('path').join(__dirname,'..',product.imageUrl));res.json({message:'Product has been Deleted.'});}catch(error){next(error);}
 };
