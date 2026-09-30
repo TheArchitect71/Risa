@@ -1,11 +1,12 @@
+const path=require('node:path');const fs=require('node:fs');fs.mkdirSync(path.join(__dirname,'../images'),{recursive:true});
 const multer = require("multer");
 
 exports.fileStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "images");
+    cb(null, path.join(__dirname,"../images"));
   },
   filename: (req, file, cb) => {
-    cb(null, new Date().toISOString() + "-" + file.originalname);
+    cb(null, Date.now() + "-" + path.basename(file.originalname));
   },
 });
 

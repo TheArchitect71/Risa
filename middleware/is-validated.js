@@ -1,8 +1,7 @@
 const { body, check } = require("express-validator");
 const User = require("../models/user");
 
-exports.validProduct = (req, res, next) => {
-  [
+exports.validProduct = [
     body("title", "Please Provide a Title ")
       .isString()
       .isLength({ min: 2, max: 140 })
@@ -12,12 +11,9 @@ exports.validProduct = (req, res, next) => {
       .isString()
       .isLength({ min: 3, max: 400 })
       .trim(),
-  ];
-  next();
-};
+];
 
-exports.validLogin = (req, res, next) => {
-  [
+exports.validLogin = [
     check("email")
       .isEmail()
       .withMessage("Please Enter a Valid Email")
@@ -26,12 +22,9 @@ exports.validLogin = (req, res, next) => {
       .isLength({ min: 6, max: 20 })
       .isAlphanumeric()
       .trim(),
-  ];
-  next();
-};
+];
 
-exports.validSignup = (req, res, next) => {
-  [
+exports.validSignup = [
     check("email")
       .isEmail()
       .withMessage("Please Enter a Valid Email")
@@ -58,6 +51,4 @@ exports.validSignup = (req, res, next) => {
         }
         return true;
       }),
-  ];
-  next();
-};
+];
