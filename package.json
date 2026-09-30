@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node --env-file=.env.local app.js",
     "dev": "nodemon --exec \"node --env-file=.env.local\" app.js",
-    "test": "node --test tests/*.test.js",
+    "test": "node --test --test-timeout=30000 tests/*.test.js",
     "check": "node scripts/check-source.cjs",
     "setup:local": "node scripts/setup-local.cjs",
     "db:init": "node scripts/initialize-mongodb.cjs"

@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const keys = require("../keys.js");
+const keys = require("../integration-config");
 
 // Stripe Key
 const {online}=require('../offline-config');
