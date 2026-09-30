@@ -28,7 +28,7 @@ Open http://127.0.0.1:3000. Stop each foreground process with Ctrl+C. The ignore
 
 ## Features and offline behavior
 
-Catalog pagination, signup/login, image uploads, product management, cart quantities, existing orders, and authorized PDF invoices work locally. Stripe payments and email/password-reset delivery are unavailable offline, as requested; checkout/reset controls explain this. Optional integration source is retained and disabled by default. No payment or email service was contacted during validation. Existing EJS templates remain reference/fallback files; the built Angular application is served by Express.
+Catalog pagination, signup/login, image uploads, product management, cart quantities, existing orders, and authorized PDF invoices work locally. Stripe payments and email/password-reset delivery are unavailable offline, as requested; checkout/reset controls explain this. Optional integration source reads STRIPE_SECRET_KEY/SMTP_PASSWORD from the environment and is disabled by default; startup does not require a private keys.js file. No payment or email service was contacted during validation. Existing EJS templates remain reference/fallback files; the built Angular application is served by Express.
 
 ## Validation and compatibility
 

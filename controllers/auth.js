@@ -1,7 +1,7 @@
 const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
-const keys = require("../keys");
+const keys = require("../integration-config");
 const { validationResult } = require("express-validator");
 
 const User = require("../models/user");
