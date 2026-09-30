@@ -3,7 +3,8 @@ const path = require("path");
 const keys = require("../keys.js");
 
 // Stripe Key
-const stripe = require("stripe")(`${keys.stripeSecret}`);
+const {online}=require('../offline-config');
+const stripe=()=>{if(!online()||!keys.stripeSecret)throw Object.assign(new Error('Payments unavailable offline'),{status:503});return require('stripe')(keys.stripeSecret);};
 
 const PDFDocument = require("pdfkit");
 
@@ -49,6 +50,7 @@ exports.getProduct = (req, res, next) => {
   const prodId = req.params.productId;
   Product.findById(prodId)
     .then((product) => {
+      if(!product)return res.status(404).json({error:'Product not found'});
       res.render("shop/product-detail", {
         product: product,
         pageTitle: product.title,
@@ -97,7 +99,7 @@ exports.getIndex = (req, res, next) => {
 exports.getCart = (req, res, next) => {
   req.user
     .populate("cart.items.productId")
-    .execPopulate()
+
     .then((user) => {
       const products = user.cart.items;
       res.render("shop/cart", {
@@ -141,30 +143,30 @@ exports.postCartDeleteProduct = (req, res, next) => {
 };
 
 exports.getCheckout = (req, res, next) => {
+ if(!online())return res.status(503).json({error:'Online payment is unavailable offline'});
   let products;
   let total =0;
   req.user
     .populate('cart.items.productId')
-    .execPopulate()
+
     .then((user) => {
       products = user.cart.items;
       total = 0;
       products.forEach(p => {
         total += p.quantity * p.productId.price;
       });
-      return stripe.checkout.sessions.create({
+      return stripe().checkout.sessions.create({
         payment_method_types: ['card'],
+        client_reference_id:req.user._id.toString(),
+        customer_email:req.user.email,
         line_items: products.map(p => {
           return {
-            name: p.productId.title,
-            description: p.productId.description,
-            amount: p.productId.price * 100,
-            currency: 'usd',
+            price_data: {currency:'usd',unit_amount:Math.round(p.productId.price*100),product_data:{name:p.productId.title,description:p.productId.description}},
             quantity: p.quantity
           };
         }),
         mode: 'payment',
-        success_url: req.protocol + '://' + req.get('host') + '/checkout/success', // => http://localhost:3000
+        success_url: req.protocol + '://' + req.get('host') + '/checkout/success?session_id={CHECKOUT_SESSION_ID}', // => http://localhost:3000
         cancel_url: req.protocol + '://' + req.get('host') + '/checkout/cancel'
       });
     }).then(session => {
@@ -173,7 +175,8 @@ exports.getCheckout = (req, res, next) => {
         pageTitle: "Checkout",
         products: products,
         totalSum: total,
-        sessionId: session.id
+        sessionId: session.id,
+        checkoutUrl:session.url
       });
     })
     .catch((err) => {
@@ -183,10 +186,12 @@ exports.getCheckout = (req, res, next) => {
     });
 };
 
-exports.getCheckoutSuccess = (req, res, next) => {
+exports.getCheckoutSuccess = async (req, res, next) => {
+ if(!online())return res.status(503).json({error:'Online payment is unavailable offline'});
+ try {const session=await stripe().checkout.sessions.retrieve(req.query.session_id);if(session.client_reference_id!==req.user._id.toString())return res.status(403).json({error:'Not authorized'});if(session.payment_status!=='paid')return res.status(400).json({error:'Payment has not completed'});}catch(e){return next(e);}
   req.user
     .populate("cart.items.productId")
-    .execPopulate()
+
     .then((user) => {
       const products = user.cart.items.map((i) => {
         return { quantity: i.quantity, product: { ...i.productId._doc } };
@@ -238,7 +243,7 @@ exports.getInvoice = (req, res, next) => {
         return next(new Error("unauthorized"));
       }
       const invoiceName = `invoice-${orderId}.pdf`;
-      const invoicePath = path.join("data", "invoices", invoiceName);
+      const directory=path.join(__dirname,'../data/invoices');fs.mkdirSync(directory,{recursive:true});const invoicePath=path.join(directory,invoiceName);
       const pdfDoc = new PDFDocument();
 
       res.setHeader("Content-Type", "application/pdf");

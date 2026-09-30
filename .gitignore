@@ -1,0 +1,12 @@
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+.env
+.env.local
+keys.js
+images/
+data/invoices/
+.DS_Store
+
+.local/

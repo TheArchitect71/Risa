@@ -1,0 +1,1 @@
+import {bootstrapApplication} from '@angular/platform-browser';import {provideZoneChangeDetection} from '@angular/core';import {Shop} from './shop';bootstrapApplication(Shop,{providers:[provideZoneChangeDetection()]}).catch(console.error);

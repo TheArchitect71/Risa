@@ -1,111 +1,25 @@
-const path = require("path");
-const express = require("express");
-const bodyParser = require("body-parser");
-const mongoose = require("mongoose");
-const session = require("express-session");
-const keys = require("./keys.js");
-const MongoDBStore = require("connect-mongodb-session")(session);
-const crsf = require("csurf");
-const flash = require("connect-flash");
-const multer = require("multer");
-
-// Error Handler
-const errorController = require("./controllers/error");
-
-// Models
-const User = require("./models/user");
-
-//MongoDB URI - what does it do, you may ask.
-const MONGODB_URI = `mongodb+srv://theArchitect71:${keys.mongodb}@cluster0-jsigs.mongodb.net/shop?retryWrites=true&w=majority`;
-
-const app = express();
-
-//MongoDB Store should be used for production
-const store = new MongoDBStore({
-  uri: MONGODB_URI,
-  collection: "sessions",
-});
-
-const crsfProtection = crsf();
-const { fileStorage, fileFilter } = require("./middleware/multer");
-
-// Views
-app.set("view engine", "ejs");
-app.set("views", "views");
-
-// List of Routes
-const adminRoutes = require("./routes/admin");
-const shopRoutes = require("./routes/shop");
-const authRoutes = require("./routes/auth");
-
-app.use(bodyParser.urlencoded({ extended: false }));
-
-//Image Upload
-app.use(multer({ storage: fileStorage, fileFilter: fileFilter }).single("image"));
-
-// Others
-app.use(express.static(path.join(__dirname, "public")));
-app.use("/images", express.static(path.join(__dirname, "images")));
-
-//Session
-app.use(
-  session({
-    secret: keys.secret,
-    resave: false,
-    saveUninitialized: false,
-    store: store
-  })
-  );
-
-  app.use(crsfProtection);
-  app.use(flash());
-
-  app.use((req, res, next) => {
-    res.locals.isAuthenticated = req.session.isLoggedIn;
-    res.locals.csrfToken = req.csrfToken();
-    next();
-  });
-
-// Stores user in session: session contains 'login' value. This session will then be shared to other middleware that require rendering when interacting with the user.
-app.use((req, res, next) => {
-  if (!req.session.user) {
-    return next();
-  }
-  User.findById(req.session.user._id)
-    .then((user) => {
-      if (!user) {
-        return next();
-      }
-      // @ts-ignore
-      req.user = user;
-      next();
-    })
-    .catch((err) => {
-      next(new Error(err));
-    });
-});
-
-// Routes in Use
-app.use("/admin", adminRoutes);
-app.use(shopRoutes);
-app.use(authRoutes);
-
-// Error routes
-app.get("/500", errorController.get500);
-app.use(errorController.get404);
-app.use((error, req, res, next) => {
-  res.status(500).render("500", {
-    pageTitle: "Error",
-    path: "/500",
-  });
-});
-
-// Using mongoose to call MongoDB Database
-mongoose
-  .connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then((result) => {
-    app.listen("3000");
-  })
-  .catch((err) => {
-    console.log(err);
-  });
+const path=require('node:path');const fs=require('node:fs');const crypto=require('node:crypto');
+const express=require('express');const mongoose=require('mongoose');const session=require('express-session');
+const MongoDBStore=require('connect-mongodb-session')(session);const flash=require('connect-flash');const multer=require('multer');
+const User=require('./models/user');const {offlineUri,online}=require('./offline-config');
+async function start(port=Number(process.env.PORT||3002)){
+ const uri=offlineUri();if(!process.env.SESSION_SECRET)throw new Error('SESSION_SECRET required');
+ await mongoose.connect(uri,{serverSelectionTimeoutMS:5000});
+ const store=new MongoDBStore({uri,collection:'sessions'});store.on('error',()=>console.error('Local session store error'));await store.initialConnectionPromise;
+ const app=express();app.disable('x-powered-by');app.set('view engine','ejs');app.set('views',path.join(__dirname,'views'));
+ app.use((req,res,next)=>{req.isApi=req.url.startsWith('/api/');if(req.isApi){req.url=req.url.slice(4);res.render=(view,model={})=>res.json({view,...model,isAuthenticated:!!req.session?.isLoggedIn,csrfToken:req.session?.csrfToken,onlineServices:online()});res.redirect=(url)=>res.json({redirect:url});}next();});
+ app.use(express.json());app.use(express.urlencoded({extended:false}));
+ const {fileStorage,fileFilter}=require('./middleware/multer');app.use(multer({storage:fileStorage,fileFilter,limits:{fileSize:5*1024*1024}}).single('image'));
+ app.use('/images',express.static(path.join(__dirname,'images')));app.use(express.static(path.join(__dirname,'public')));
+ app.use(session({secret:process.env.SESSION_SECRET,resave:false,saveUninitialized:false,store,cookie:{httpOnly:true,sameSite:'lax'}}));app.use(flash());
+ app.use((req,res,next)=>{req.session.csrfToken ||= crypto.randomBytes(32).toString('hex');res.locals.isAuthenticated=!!req.session.isLoggedIn;res.locals.csrfToken=req.session.csrfToken;
+ if(!['GET','HEAD','OPTIONS'].includes(req.method)){const supplied=req.get('x-csrf-token')||req.body?._csrf||'';const expected=req.session.csrfToken;const a=Buffer.from(supplied),b=Buffer.from(expected);if(a.length!==b.length||!crypto.timingSafeEqual(a,b))return res.status(403).json({error:'Invalid CSRF token'});}next();});
+ app.use(async(req,res,next)=>{try{if(req.session.user){req.user=await User.findById(req.session.user._id);}next();}catch(e){next(e);}});
+ app.get('/session',(req,res)=>res.json({isAuthenticated:!!req.user,csrfToken:req.session.csrfToken,email:req.user?.email,onlineServices:online()}));
+ const frontend=path.join(__dirname,'frontend/dist/risa/browser');const serveFrontend=express.static(frontend);app.use((req,res,next)=>req.isApi?next():serveFrontend(req,res,next));app.use((req,res,next)=>{if(!req.isApi&&req.method==='GET'&&!path.extname(req.path)&&fs.existsSync(path.join(frontend,'index.html')))return res.sendFile(path.join(frontend,'index.html'));next();});
+ app.use('/admin',require('./routes/admin'));app.use(require('./routes/shop'));app.use(require('./routes/auth'));
+ app.use((req,res)=>res.status(404).json({error:'Not found'}));app.use((err,req,res,next)=>{if(res.headersSent)return next(err);res.status(err.status||500).json({error:err.status?err.message:'Internal server error'});});
+ const server=app.listen(port,'127.0.0.1');await new Promise((resolve,reject)=>{server.once('listening',resolve);server.once('error',reject);});console.log(`nodejs-server listening at http://127.0.0.1:${server.address().port}`);
+ return {app,server,store,async close(){await new Promise(r=>server.close(r));await store.client?.close();await mongoose.disconnect();}};
+}
+module.exports={start};if(require.main===module)start().catch(e=>{console.error(e.message);process.exitCode=1;});
