@@ -1,45 +1,65 @@
-# Risa local shop
+# Risa — local shop
 
-Express 5 and Mongoose 9 backend with an Angular 22 frontend. MongoDB stays local; the default configuration rejects remote MongoDB hosts. Existing credential files and legacy JSON product/cart files are preserved. The two legacy JSON products have no MongoDB owner IDs and are not imported automatically. No persistent demo data is created.
+A full-stack shopping application with an Angular frontend and an Express/MongoDB backend. Users can browse products, manage a cart, and view orders; the product administration area supports image uploads and editing.
+
+## What you can do
+
+- Sign up, log in, and browse a paginated product catalog.
+- View product details and change cart quantities.
+- Add, edit, and delete products with local image uploads.
+- View existing orders and download authorized PDF invoices.
+
+## Preview
+
+![Risa product catalog](docs/screenshots/desktop.png)
+
+Captured from the running application on September 30, 2026. Any sample records shown are demonstration or isolated test data, not data included with a fresh installation.
+
+<details>
+<summary>Mobile view</summary>
+
+![Mobile risa product catalog](docs/screenshots/mobile.png)
+
+</details>
 
 ## Run locally
 
-Install Node 26.10.0 and MongoDB Community 9.0.2 locally. From this repository:
+Prerequisites: the Node version in `.nvmrc` (currently 26.10.0), npm, and MongoDB Community 9.0.2. From the repository root:
 
 ```sh
 npm ci
 npm run setup:local
 npm --prefix frontend ci
 npm --prefix frontend run build
+```
+
+Start MongoDB in a foreground terminal:
+
+```sh
 mkdir -p .local/mongodb
 mongod --dbpath .local/mongodb --bind_ip 127.0.0.1 --port 27018 --replSet offline-rs
 ```
 
-Leave MongoDB in that foreground terminal. In a second terminal at this repository:
+If that local replica set already runs on port 27018, reuse it rather than starting a second instance. In another terminal at the repository root:
 
 ```sh
 npm run db:init
 npm start
 ```
 
-Skip the MongoDB launch if the matching local `offline-rs` already runs on 27018. `db:init` only initializes the replica set; it creates no application records. `setup:local` generates a private session secret without overwriting an existing configuration. Stop foreground processes with Ctrl+C.
+Open [http://127.0.0.1:3000](http://127.0.0.1:3000). Keep both processes in the foreground and stop them with **Ctrl+C**. Setup creates a private, ignored `.env.local` without overwriting an existing file. Database initialization creates no application records. These defaults use local MongoDB; no Atlas account is required.
 
-Open http://127.0.0.1:3000. Stop each foreground process with Ctrl+C. The ignored `.env.local` holds the local database URI and private session secret. Development frontend: `npm --prefix frontend start`, proxying the backend on port 3000.
+## Current scope
 
-## Features and offline behavior
+A fresh database starts empty. Legacy JSON products are preserved but are not automatically imported. Stripe checkout, email, and password-reset delivery are disabled by default and unavailable offline; the interface explains this. Optional online integrations require your own environment configuration. Express serves the built Angular frontend; legacy EJS templates remain reference/fallback files.
 
-Catalog pagination, signup/login, image uploads, product management, cart quantities, existing orders, and authorized PDF invoices work locally. Stripe payments and email/password-reset delivery are unavailable offline, as requested; checkout/reset controls explain this. Optional integration source reads STRIPE_SECRET_KEY/SMTP_PASSWORD from the environment and is disabled by default; startup does not require a private keys.js file. No payment or email service was contacted during validation. Existing EJS templates remain reference/fallback files; the built Angular application is served by Express.
-
-## Validation and compatibility
+## Development
 
 ```sh
 npm run check
 npm test
-npm --prefix frontend run build
 npm --prefix frontend run typecheck
 npm --prefix frontend test -- --browsers=ChromeHeadless
 ```
 
-Mongo integration tests use and drop a uniquely named test database on localhost:27018. Browser tests used isolated fixtures, not the application database. Four backend and three Angular tests pass, plus desktop/mobile signup/login/upload/pagination/cart/edit/order/PDF/delete/logout flows. Clean installs report zero audit vulnerabilities.
-
-Node is pinned to 26.10.0. TypeScript 6.0.3 is held within Angular 22's >=6.0 <6.1 range. Jasmine 6.3.0/types 6 are retained for the Zone/Karma test harness compatibility; Jasmine 7 migration remains separate. Mongoose 9.10.3 uses MongoDB driver 7.6.0/BSON 7.3.3, while connect-mongodb-session 5.0.0 uses driver 6.21.0/BSON 6.10.4. Session user IDs are stored as strings across that boundary. Mongoose schemas and model methods remain; obsolete execPopulate calls now await populate directly. Online Stripe/SMTP behavior is unverified because those services are disabled.
+Backend tests use a separate local MongoDB database. For frontend development, `npm --prefix frontend start` proxies API requests to port 3000.
