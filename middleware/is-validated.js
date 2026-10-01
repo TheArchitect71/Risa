@@ -6,11 +6,21 @@ exports.validProduct = [
       .isString()
       .isLength({ min: 2, max: 140 })
       .trim(),
-    body("price", "Please Set a Price").isFloat(),
+    body("price", "Please Set a Price").isFloat({ min: 0 }),
     body("description", "Please Provide a Description")
       .isString()
       .isLength({ min: 3, max: 400 })
       .trim(),
+    body("sku", "SKU must be 60 characters or fewer")
+      .optional({ values: "falsy" }).isString().isLength({ max: 60 }).trim(),
+    body("category", "Category must be 60 characters or fewer")
+      .optional({ values: "falsy" }).isString().isLength({ max: 60 }).trim(),
+    body("quantity", "Quantity must be a whole number of 0 or more")
+      .custom(value => value === undefined || value === null || value === '' ||
+        (Number.isSafeInteger(Number(value)) && Number(value) >= 0)),
+    body("reorderLevel", "Low stock threshold must be a whole number of 0 or more")
+      .custom(value => value === undefined || value === null || value === '' ||
+        (Number.isSafeInteger(Number(value)) && Number(value) >= 0)),
 ];
 
 exports.validLogin = [

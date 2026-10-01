@@ -1,0 +1,43 @@
+<section class="inventory-page" aria-labelledby="inventory-title">
+  <div class="inventory-heading">
+    <div><p class="eyebrow">RISA / PRODUCT MANAGEMENT</p><h1 id="inventory-title">Inventory</h1><p>Manage the products in your shop and keep an eye on stock.</p></div>
+    <button type="button" class="inventory-button primary" (click)="add.emit()">＋ Add product</button>
+  </div>
+
+  <div class="inventory-stats" aria-label="Inventory summary">
+    <article><span>Total products</span><strong>{{summary.products | number}}</strong><small>Listings you manage</small></article>
+    <article><span>Units in stock</span><strong>{{summary.units | number}}</strong><small>Tracked units</small></article>
+    <article><span>Low stock</span><strong>{{summary.lowStock | number}}</strong><small>At or below threshold</small></article>
+    <article><span>Inventory value</span><strong>{{summary.value | currency:'USD'}}</strong><small>Tracked units × price</small></article>
+  </div>
+
+  <section class="inventory-panel" aria-labelledby="products-title">
+    <div class="panel-heading"><div><h2 id="products-title">Products</h2><p>Changes here update the same listings shown in the shop.</p></div><button type="button" class="inventory-button secondary" (click)="exportItems()">Export JSON</button></div>
+    <div class="inventory-toolbar">
+      <label class="inventory-search"><span class="sr-only">Search inventory</span><span aria-hidden="true">⌕</span><input type="search" [(ngModel)]="query" placeholder="Search name, SKU, or category" autocomplete="off"></label>
+      <div class="inventory-filters" role="group" aria-label="Stock filter">
+        <button type="button" [class.active]="stockFilter==='all'" [attr.aria-pressed]="stockFilter==='all'" (click)="stockFilter='all'">All products</button>
+        <button type="button" [class.active]="stockFilter==='low'" [attr.aria-pressed]="stockFilter==='low'" (click)="stockFilter='low'">Low stock</button>
+      </div>
+    </div>
+    @if(visible.length){
+      <div class="inventory-table-scroll"><table><thead><tr><th scope="col">Product</th><th scope="col">SKU</th><th scope="col">Category</th><th scope="col" class="numeric">In stock</th><th scope="col" class="numeric">Price</th><th scope="col">Status</th><th scope="col" class="actions">Actions</th></tr></thead><tbody>
+        @for(product of visible; track product._id){<tr>
+          <td><div class="product-cell"><img [src]="'/'+product.imageUrl" [alt]="''"><strong>{{product.title}}</strong></div></td>
+          <td>{{product.sku || '—'}}</td><td>{{product.category || '—'}}</td>
+          <td class="numeric">{{hasStock(product) ? (product.quantity | number) : '—'}}</td><td class="numeric">{{product.price | currency:'USD'}}</td>
+          <td><span class="stock-status" [class.low]="isLow(product)" [class.untracked]="!hasStock(product)">{{!hasStock(product) ? 'Not tracked' : isLow(product) ? 'Low stock' : 'In stock'}}</span></td>
+          <td class="row-actions"><button type="button" (click)="edit.emit(product._id)" [attr.aria-label]="'Edit '+product.title">Edit</button><button type="button" class="delete" (click)="remove.emit(product._id)" [attr.aria-label]="'Delete '+product.title">Delete</button></td>
+        </tr>}
+      </tbody></table></div>
+    } @else {
+      <div class="inventory-empty">
+        <div class="empty-icon" aria-hidden="true">▦</div>
+        @if(products.length){<h3>No matching products</h3><p>Try another search or switch to all products.</p>}
+        @else{<h3>Your inventory starts here</h3><p>Add a product to create your first shop listing.</p><button type="button" class="inventory-button primary" (click)="add.emit()">Add your first product</button>}
+      </div>
+    }
+    <footer><span>{{visible.length}} {{visible.length===1 ? 'product' : 'products'}}</span><span>Stock changes save to Risa</span></footer>
+  </section>
+  <span class="sr-only" role="status" aria-live="polite">{{announcement}}</span>
+</section>

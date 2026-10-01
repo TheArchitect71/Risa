@@ -11,6 +11,10 @@ const productSchema = new Schema({
     type: Number,
     required: true
   },
+  sku: { type: String, default: '', trim: true },
+  category: { type: String, default: '', trim: true },
+  quantity: { type: Number, default: null, min: 0 },
+  reorderLevel: { type: Number, default: 5, min: 0 },
   description: {
     type: String,
     required: true
